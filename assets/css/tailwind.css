@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* postcss-ignore-start */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* postcss-ignore-end */
+
+@layer base {
+	body {
+		font-family: 'Inter', sans-serif;
+		background: #0f1e33;
+		color: #f8fbff;
+	}
+}
+
+@layer components {
+			.panel-header {
+				width:100%;max-width:48rem;margin-left:auto;margin-right:auto;border-radius:1rem;background:#1E3557;text-align:center;padding:2rem 0;font-size:1.875rem;font-weight:600;position:relative;color:#fff;box-shadow:0 8px 24px -4px rgba(0,0,0,.5);
+			}
+	.panel-header::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		box-shadow: 0 0 0 1px rgba(90,154,255,0.25), 0 8px 24px -4px rgba(0,0,0,0.5);
+		pointer-events: none;
+	}
+			.user-badge-card {width:3.5rem;height:5rem;border-radius:.75rem;background:#1E3557;display:flex;align-items:center;justify-content:center;border:1px solid #475569;box-shadow:0 4px 12px -2px rgba(0,0,0,.6);}
+				.user-badge-card.voted {background:#23497A;border-color:#1d4ed8;box-shadow:0 0 0 2px rgba(90,154,255,.7),0 8px 24px -6px rgba(0,0,0,.75);}
+			.fib-card {padding:.75rem 1rem;border-radius:.75rem;border:1px solid #475569;background:#1f2937;color:#e2e8f0;font-weight:600;font-size:.875rem;cursor:pointer;transition:.15s box-shadow,.15s background,.15s border-color;box-shadow:0 0 0 1px rgba(70,130,220,.25),0 4px 12px -2px rgba(0,0,0,.6);} 
+			.fib-card:hover {background:#334155;border-color:#1d4ed8;color:#bae6fd;box-shadow:0 0 0 1px rgba(90,154,255,.6),0 6px 16px -4px rgba(0,0,0,.7);} 
+			.fib-card.active {background:#334155;border-color:#1d4ed8;color:#7dd3fc;box-shadow:0 0 0 2px rgba(90,154,255,.7),0 8px 20px -4px rgba(0,0,0,.8);} 
+}
