@@ -6,7 +6,7 @@ export default defineNuxtPlugin((nuxtApp: any) => {
   let socket: Socket | null = null
   const store = useRoomStore() as any
   const config = (nuxtApp.$config || nuxtApp.$config.public || (nuxtApp.$config && nuxtApp.$config.runtimeConfig) || {})
-  const url = (nuxtApp.$config?.public?.socketUrl) || process?.env?.SOCKET_URL || 'http://localhost:4000'
+  const url = (nuxtApp.$config?.public?.socketUrl) || process?.env?.NUXT_SOCKET_URL || 'http://localhost:4000'
 
   function connect(roomId: string, name: string){
     if(socket){ return }

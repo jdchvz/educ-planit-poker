@@ -3,12 +3,12 @@ export default defineNuxtConfig({
   modules: ['@pinia/nuxt'],
   runtimeConfig: {
     public: {
-      socketUrl: process.env.SOCKET_URL || 'http://localhost:4000'
+      socketUrl: process.env.NUXT_SOCKET_URL || 'http://localhost:4000'
     }
   },
   postcss: {
     plugins: {
-  tailwindcss: {},
+      tailwindcss: {},
       autoprefixer: {},
     },
   },
