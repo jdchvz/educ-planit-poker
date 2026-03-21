@@ -10,4 +10,11 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'node-server'
   },
+  app: {
+    head: {
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }
+      ]
+    }
+  }
 })
