@@ -1,18 +1,10 @@
 export default defineNuxtConfig({
-  css: ['~/assets/css/tailwind.css'],
-  modules: ['@pinia/nuxt'],
-  runtimeConfig: {
-    public: {
-      socketUrl: process.env.NUXT_SOCKET_URL || 'http://localhost:4000'
-    }
-  },
-  postcss: {
-    plugins: {
-      tailwindcss: {},
-      autoprefixer: {},
-    },
-  },
   nitro: {
     preset: 'node-server'
+  },
+  runtimeConfig: {
+    public: {
+      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || ''
+    }
   }
 })
