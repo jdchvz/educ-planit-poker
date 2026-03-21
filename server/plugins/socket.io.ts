@@ -1,5 +1,5 @@
 import { Server } from 'socket.io'
-import type { NitroApp } from 'nitropack'
+import { defineNitroPlugin } from 'nitropack/runtime'
 
 interface PresencePayload { roomId: string; players: string[] }
 
@@ -7,7 +7,7 @@ const rooms: Record<string, Set<string>> = {}
 const socketName: Record<string, { roomId: string; name: string }> = {}
 let ioInstance: Server | null = null
 
-export default (nitro: NitroApp) => {
+export default defineNitroPlugin((nitro) => {
   ;(nitro.hooks as any).hook('listen', (server: any) => {
     if(ioInstance){
       console.log('[socket.io] already initialized')
@@ -52,4 +52,4 @@ export default (nitro: NitroApp) => {
       })
     })
   })
-}
+})
