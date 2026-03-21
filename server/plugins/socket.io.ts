@@ -13,7 +13,15 @@ export default defineNitroPlugin((nitro) => {
       console.log('[socket.io] already initialized')
       return
     }
-    const io = ioInstance = new Server(server, { path: '/socket.io', cors: { origin: '*'} })
+    const io = ioInstance = new Server(server, { 
+      path: '/socket.io', 
+      cors: { 
+        origin: process.env.NODE_ENV === 'production' 
+          ? process.env.NUXT_PUBLIC_SOCKET_URL || '*'
+          : '*',
+        methods: ['GET', 'POST']
+      }
+    })
     console.log('[socket.io] initialized')
 
     io.on('connection', (socket) => {
