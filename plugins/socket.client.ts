@@ -8,7 +8,6 @@ export default defineNuxtPlugin((nuxtApp: any) => {
 
   function connect(roomId: string, name: string){
     if(socket){ return }
-    console.log('[client] connecting to same host, room', roomId, 'as', name)
 
     // No URL = connects to same host automatically
     socket = io({
@@ -21,7 +20,6 @@ export default defineNuxtPlugin((nuxtApp: any) => {
     })
 
     socket.on('connect', () => {
-      console.log('[client] connected', socket!.id)
       store._socketConnected = true
       if(store.isCreator){
         socket!.emit('create-room', { roomId, name })
@@ -30,29 +28,24 @@ export default defineNuxtPlugin((nuxtApp: any) => {
       }
     })
     socket.on('room-created', ({ roomId: createdId }) => {
-      console.log('[client] room-created', createdId)
       socket!.emit('join-room', { roomId: createdId, name: store.currentPlayer })
     })
     socket.on('room-exists', ({ roomId: existingId }) => {
-      console.log('[client] room-exists (treating as normal join)', existingId)
       socket!.emit('join-room', { roomId: existingId, name: store.currentPlayer })
     })
     socket.on('presence', (payload: { roomId: string; players: string[] }) => {
-      console.log('[client] presence update', payload)
       store.players = payload.players
     })
     socket.on('votes-sync', (payload: { roomId: string; votes: Record<string, any> }) => {
       if(payload.roomId === store.currentRoomId){
         store.votes = { ...payload.votes }
         localStorage.setItem('votes', JSON.stringify(store.votes))
-        console.log('[client] votes-sync applied', payload)
       }
     })
     socket.on('reveal-update', (payload: { roomId: string }) => {
       if(payload.roomId === store.currentRoomId){
         store.revealed = true
   localStorage.setItem('revealed', JSON.stringify(store.revealed))
-  console.log('[client] reveal-update applied')
       }
     })
     socket.on('reset-update', (payload: { roomId: string }) => {
@@ -61,23 +54,32 @@ export default defineNuxtPlugin((nuxtApp: any) => {
         store.revealed = false
   localStorage.setItem('votes', JSON.stringify(store.votes))
   localStorage.setItem('revealed', JSON.stringify(store.revealed))
-  console.log('[client] reset-update applied')
       }
     })
     socket.on('room-not-found', (payload: { roomId: string }) => {
-      console.warn('[client] room-not-found', payload)
-      store.setError(`Room ${payload.roomId} not found`)
+      store.setError(`Room "${payload.roomId}" was not found. Redirecting to home...`)
       // Clear room-related state
       store.currentRoomId = ''
       store.players = []
       store.votes = {}
       store.revealed = false
+      store.isCreator = false
       localStorage.setItem('players', JSON.stringify(store.players))
       localStorage.setItem('votes', JSON.stringify(store.votes))
       localStorage.setItem('revealed', JSON.stringify(store.revealed))
+      // Disconnect socket
+      if(socket){
+        socket.disconnect()
+        store._socketConnected = false
+        socket = null
+      }
+      // Redirect to homepage after short delay so user can see the error
+      setTimeout(() => {
+        store.setError('')
+        nuxtApp.$router.push('/')
+      }, 2500)
     })
     socket.on('name-taken', (payload: { roomId: string; name: string }) => {
-      console.warn('[client] name-taken', payload)
       store.setError(`Name "${payload.name}" is already taken in this room`)
       store.setErrorRedirect(false)
       // clear currentPlayer so user must choose another name
@@ -101,7 +103,6 @@ export default defineNuxtPlugin((nuxtApp: any) => {
 
   function disconnect(roomId: string){
     if(socket){
-      console.log('[client] disconnect socket')
       socket.emit('leave-room', { roomId, name: store.currentPlayer })
       socket.disconnect()
       store._socketConnected = false

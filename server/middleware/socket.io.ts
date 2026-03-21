@@ -16,8 +16,6 @@ export default defineEventHandler((event) => {
 
   if (!server) return
 
-  console.log('[socket.io] initializing from middleware...')
-
   const io = new Server(server, {
     path: '/socket.io',
     transports: ['polling', 'websocket'],
@@ -28,11 +26,8 @@ export default defineEventHandler((event) => {
   })
 
   ioInstance = io
-  console.log('[socket.io] initialized!')
 
   io.on('connection', (socket) => {
-    console.log('[socket.io] connection', socket.id)
-
     socket.on('create-room', ({ roomId, name }: { roomId: string; name: string }) => {
       if (rooms.has(roomId)) {
         socket.emit('room-exists', { roomId })

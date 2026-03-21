@@ -62,7 +62,6 @@ const createRoom = () => {
     const newId = Math.random().toString(36).substring(2,8)
     store.startNewRoom(playerName.value)
     router.push(`/room/${newId}`)
-    console.log('Room Created', newId)
   }
 }
 </script>
