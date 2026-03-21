@@ -56,7 +56,7 @@
         <div class="flex flex-col items-center gap-4 z-10">
           <div class="text-6xl animate-bounce">🎉</div>
           <div class="text-3xl font-bold text-white drop-shadow-lg tracking-wide text-center">
-            Everyone agreed!
+            Yay! Everyone agreed!
           </div>
           <div class="text-5xl font-extrabold text-sky-400 drop-shadow-lg animate-pulse">
             {{ agreedValue }}
