@@ -1,9 +1,10 @@
 <template>
-  <div class="min-h-screen flex flex-col items-center pt-6 md:pt-10 pb-20 bg-[#0f1e33] text-white"
+  <div class="min-h-screen flex flex-col items-center pt-6 md:pt-10 pb-20 bg-[#0f1e33] text-white transition-colors duration-300"
     @click="handleOutsideClick">
     <div class="w-full max-w-5xl mb-6 px-4 md:px-6 flex justify-between items-center">
-      <a href="/" class="text-lg font-semibold tracking-wide text-slate-200 hover:text-white transition-colors">Poker Planning</a>
-
+      <a href="/" class="text-lg font-semibold tracking-wide text-slate-200 hover:text-white transition-colors">
+        Poker Planning
+      </a>
       <!-- Invite Button -->
       <div class="relative" ref="inviteRef">
         <button @click.stop="showInvite = !showInvite"
@@ -187,7 +188,6 @@ import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useRoomStore } from '../../stores/room'
 import NameModal from '../../components/NameModal.vue'
 import ErrorModal from '../../components/ErrorModal.vue'
-
 const route = useRoute()
 const roomId = route.params.id
 

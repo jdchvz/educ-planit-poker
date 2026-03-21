@@ -8,7 +8,7 @@
   }
 
   .user-badge-card {
-    @apply w-16 h-24 rounded-lg border-2 border-slate-600 bg-[#132a49] 
+    @apply w-16 h-24 rounded-lg border-2 border-slate-600 bg-[#132a49]
            flex items-center justify-center shadow-md transition-all duration-200;
   }
 
@@ -17,8 +17,8 @@
   }
 
   .fib-card {
-    @apply w-14 h-20 md:w-16 md:h-24 rounded-lg border-2 border-slate-600 bg-[#132a49] 
-           text-slate-200 font-bold text-base md:text-lg flex items-center justify-center 
+    @apply w-14 h-20 md:w-16 md:h-24 rounded-lg border-2 border-slate-600 bg-[#132a49]
+           text-slate-200 font-bold text-base md:text-lg flex items-center justify-center
            hover:border-sky-400 hover:bg-[#1a3a5c] hover:text-white
            hover:-translate-y-2 hover:shadow-xl hover:shadow-sky-900/50
            transition-all duration-150
@@ -27,7 +27,7 @@
   }
 
   .fib-card.active {
-    @apply border-sky-400 bg-sky-700 text-white 
+    @apply border-sky-400 bg-sky-700 text-white
            -translate-y-3 scale-105
            shadow-[0_8px_20px_rgba(56,189,248,0.5),0_2px_4px_rgba(0,0,0,0.6)];
   }

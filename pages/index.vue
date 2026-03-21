@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen flex flex-col items-center pt-16 pb-24 bg-[#0f1e33] text-slate-200 font-sans">
+    
     <div class="panel-header mb-14 w-[760px] max-w-full">
       <h1 class="text-4xl font-extrabold tracking-wide text-white drop-shadow-[0_0_18px_rgba(56,189,248,0.6)] mb-1">
         Education Poker Planning
