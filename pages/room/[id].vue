@@ -6,9 +6,19 @@
     <div class="panel-header mb-10">
       Pick your cards!
       <div class="mt-4 text-xs tracking-wide opacity-70">Room: {{ roomId }}</div>
-      <div class="mt-2">
+      <div class="mt-2 flex items-center gap-2">
         <input type='text' :value='shareLink' readonly
           class='bg-[#132a49] border border-slate-600 rounded px-2 py-1 text-xs w-72 text-slate-200 focus:outline-none'/>
+        <button @click="copyLink" :title="copied ? 'Copied!' : 'Copy link'"
+          class="p-1.5 rounded bg-[#132a49] border border-slate-600 hover:bg-slate-700 transition-colors">
+          <svg v-if="!copied" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-4 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -92,5 +102,11 @@ const handleNameSubmit = (name: string) => {
     store.setNeedNameModal(false)
     store.connectSocket(store.currentRoomId, name)
   }
+}
+const copied = ref(false)
+const copyLink = async () => {
+  await navigator.clipboard.writeText(shareLink.value)
+  copied.value = true
+  setTimeout(() => copied.value = false, 2000)
 }
 </script>
