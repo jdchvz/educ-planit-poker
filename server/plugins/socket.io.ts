@@ -7,14 +7,15 @@ const socketMap = new Map<string, { roomId: string; name: string }>()
 
 let ioInstance: Server | null = null
 
-export default defineNitroPlugin((nitro) => {
-  ;(nitro.hooks as any).hook('listen', (server: any) => {
+export default defineNitroPlugin((nitroApp) => {
+  // @ts-ignore
+  nitroApp.hooks.hook('listen:node', ({ server }: { server: any }) => {
     if (ioInstance) {
       console.log('[socket.io] already initialized')
       return
     }
 
-    const io = ioInstance = new Server(server, {
+    const io = new Server(server, {
       path: '/socket.io',
       transports: ['polling', 'websocket'],
       cors: {
@@ -22,6 +23,8 @@ export default defineNitroPlugin((nitro) => {
         methods: ['GET', 'POST']
       }
     })
+
+    ioInstance = io
 
     console.log('[socket.io] initialized')
 
@@ -66,7 +69,7 @@ export default defineNitroPlugin((nitro) => {
         }
         if (roomVotes.has(roomId)) {
           roomVotes.get(roomId)!.delete(name)
-          io.to(roomId).emit('votes-sync', { roomId, votes: Object.fromEntries(roomVotes.get(roomId)!) })
+          io.to(info.roomId).emit('votes-sync', { roomId, votes: Object.fromEntries(roomVotes.get(roomId)!) })
         }
         socket.leave(roomId)
         socketMap.delete(socket.id)
