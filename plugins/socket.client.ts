@@ -5,13 +5,21 @@ declare const defineNuxtPlugin: (cb: (...args:any[])=>void) => any
 export default defineNuxtPlugin((nuxtApp: any) => {
   let socket: Socket | null = null
   const store = useRoomStore() as any
-  const config = (nuxtApp.$config || nuxtApp.$config.public || (nuxtApp.$config && nuxtApp.$config.runtimeConfig) || {})
-  const url = (nuxtApp.$config?.public?.socketUrl) || process?.env?.NUXT_SOCKET_URL || 'http://localhost:4000'
 
   function connect(roomId: string, name: string){
     if(socket){ return }
-  console.log('[client] connecting to', url, 'room', roomId, 'as', name)
-  socket = io(url, { transports: ['websocket', 'polling'] })
+    console.log('[client] connecting to same host, room', roomId, 'as', name)
+
+    // No URL = connects to same host automatically
+    socket = io({
+      path: '/socket.io',
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    })
+
     socket.on('connect', () => {
       console.log('[client] connected', socket!.id)
       store._socketConnected = true
