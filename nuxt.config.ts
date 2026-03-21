@@ -1,6 +1,6 @@
 export default defineNuxtConfig({
   modules: ['@pinia/nuxt'],
-  css: ['~/assets/css/main.css'], // make sure this exists
+  css: ['~/assets/css/main.css'],
   postcss: {
     plugins: {
       tailwindcss: {},
@@ -10,9 +10,4 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'node-server'
   },
-  runtimeConfig: {
-    public: {
-      socketUrl: ''
-    }
-  }
 })
