@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex flex-col items-center pt-16 pb-24 bg-[#0f1e33] text-slate-200 font-sans">
     <div class="panel-header mb-14 w-[760px] max-w-full">
-      GO Poker Planning
+      Education Poker Planning
       <div class="mt-4 text-sm opacity-75 tracking-wide">Create or join an estimation room</div>
       <div class="mt-4 text-sm opacity-75 tracking-wide">Let the war begin!</div>
     </div>
