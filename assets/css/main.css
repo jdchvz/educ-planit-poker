@@ -19,11 +19,23 @@
   .fib-card {
     @apply w-16 h-24 rounded-lg border-2 border-slate-600 bg-[#132a49] 
            text-slate-200 font-bold text-lg flex items-center justify-center 
-           hover:border-sky-400 hover:bg-[#1a3a5c] hover:text-white 
-           transition-all duration-150 shadow-md cursor-pointer;
+           hover:border-sky-400 hover:bg-[#1a3a5c] hover:text-white
+           hover:-translate-y-2 hover:shadow-xl hover:shadow-sky-900/50
+           transition-all duration-150
+           shadow-[0_4px_8px_rgba(0,0,0,0.4),0_1px_2px_rgba(0,0,0,0.6)]
+           cursor-pointer;
   }
 
   .fib-card.active {
-    @apply border-sky-400 bg-sky-700 text-white shadow-sky-900/50;
+    @apply border-sky-400 bg-sky-700 text-white 
+           -translate-y-3 scale-105
+           shadow-[0_8px_20px_rgba(56,189,248,0.5),0_2px_4px_rgba(0,0,0,0.6)];
+  }
+
+  .form-input {
+    @apply w-full bg-[#0f1e33] border border-[#2e4f70] rounded-[10px] px-[14px] py-3
+           text-slate-100 text-[15px] outline-none
+           focus:border-blue-500 focus:bg-[#173256]
+           transition-colors duration-150;
   }
 }
