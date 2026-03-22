@@ -26,6 +26,11 @@ export default defineNuxtPlugin((nuxtApp: any) => {
           deck: Array.isArray(store.cardDeck) ? store.cardDeck : [...[1, 2, 3, 5, 8, 13, 21, 34, 55, 89]],
         })
       } else {
+        // Reset votes and revealed state when joining a room
+        store.votes = {}
+        store.revealed = false
+        localStorage.setItem('votes', JSON.stringify(store.votes))
+        localStorage.setItem('revealed', JSON.stringify(store.revealed))
         socket!.emit('join-room', { roomId, name })
       }
     })

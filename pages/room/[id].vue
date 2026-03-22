@@ -122,7 +122,8 @@ const allVotesMatch = computed(() => {
   const validVotes = players.value
     .map(p => votes.value[p])
     .filter(v => v !== undefined && v !== '?' && v !== '☕')
-  if (!validVotes.length) return false
+  // Need at least 2 valid voters to agree
+  if (validVotes.length < 2) return false
   return validVotes.every(v => v === validVotes[0])
 })
 
@@ -131,7 +132,9 @@ watch(allVotesMatch, (val) => {
     const validVotes = players.value
       .map(p => votes.value[p])
       .filter(v => v !== undefined && v !== '?' && v !== '☕')
-    agreedValue.value = validVotes[0]
+    // Pick the agreed value from valid votes, not from a specific player index
+    const uniqueValues = [...new Set(validVotes)]
+    agreedValue.value = uniqueValues.length === 1 ? uniqueValues[0] : null
     showCongrats.value = true
     setTimeout(() => showCongrats.value = false, 4000)
   }
