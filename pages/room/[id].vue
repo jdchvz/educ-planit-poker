@@ -128,7 +128,10 @@ const allVotesMatch = computed(() => {
 
 watch(allVotesMatch, (val) => {
   if (val) {
-    agreedValue.value = votes.value[players.value[0]]
+    const validVotes = players.value
+      .map(p => votes.value[p])
+      .filter(v => v !== undefined && v !== '?' && v !== '☕')
+    agreedValue.value = validVotes[0]
     showCongrats.value = true
     setTimeout(() => showCongrats.value = false, 4000)
   }
