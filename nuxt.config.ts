@@ -1,4 +1,5 @@
 export default defineNuxtConfig({
+  ssr: false,
   modules: ['@pinia/nuxt'],
   css: ['~/assets/css/main.css'],
   postcss: {
@@ -16,5 +17,8 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }
       ]
     }
+  },
+  routeRules: {
+    '/room/**': { ssr: false }
   }
 })

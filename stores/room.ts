@@ -1,78 +1,100 @@
 import { defineStore } from 'pinia'
+
+const DEFAULT_DECK: (string | number)[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]
+
+const safeDeck = (val: any): (string | number)[] =>
+  Array.isArray(val) && val.length > 0 ? val : [...DEFAULT_DECK]
+
 export const useRoomStore = defineStore('room', {
-  state: () => ({ players: [] as string[], votes: {} as Record<string, any>, revealed: false, currentPlayer: '', currentRoomId: '', _socketConnected: false, error: '', isCreator: false, needNameModal: false, errorRedirect: false }),
+  state: () => ({
+    players: [] as string[],
+    votes: {} as Record<string, any>,
+    revealed: false,
+    currentPlayer: '',
+    currentRoomId: '',
+    _socketConnected: false,
+    error: '',
+    isCreator: false,
+    needNameModal: false,
+    cardDeck: [...DEFAULT_DECK] as (string | number)[],
+  }),
   actions: {
     init() {
-      const savedPlayers = JSON.parse(localStorage.getItem('players') || '[]')
-      const savedVotes = JSON.parse(localStorage.getItem('votes') || '{}')
-      const savedRevealed = JSON.parse(localStorage.getItem('revealed') || 'false')
-      const savedCurrent = localStorage.getItem('currentPlayer') || ''
-      this.players = savedPlayers
-      this.votes = savedVotes
-      this.revealed = savedRevealed
-      this.currentPlayer = savedCurrent
+      let savedDeck: any = null
+      try { savedDeck = JSON.parse(localStorage.getItem('cardDeck') || 'null') } catch { savedDeck = null }
+      this.players = JSON.parse(localStorage.getItem('players') || '[]')
+      this.votes = JSON.parse(localStorage.getItem('votes') || '{}')
+      this.revealed = JSON.parse(localStorage.getItem('revealed') || 'false')
+      this.currentPlayer = localStorage.getItem('currentPlayer') || ''
+      this.cardDeck = safeDeck(savedDeck)
     },
-    vote(card) {
-      if(this.revealed) return // prevent changing vote after reveal
-      const name = this.currentPlayer || 'You'
-      if((this as any).emitVote){ (this as any).emitVote(card) }
+    vote(card: any) {
+      if (this.revealed) return
+      ;(this as any).emitVote?.(card)
     },
     reveal() {
       this.revealed = true
       localStorage.setItem('revealed', JSON.stringify(this.revealed))
-      if((this as any).emitReveal){ (this as any).emitReveal() }
+      ;(this as any).emitReveal?.()
     },
     reset() {
       this.votes = {}
       this.revealed = false
       localStorage.setItem('votes', JSON.stringify(this.votes))
       localStorage.setItem('revealed', JSON.stringify(this.revealed))
-      if((this as any).emitReset){ (this as any).emitReset() }
+      ;(this as any).emitReset?.()
     },
-    addPlayer(name) {
-      if(!name) return
+    addPlayer(name: string) {
+      if (!name) return
       this.currentPlayer = name
       localStorage.setItem('currentPlayer', name)
-      if(!this.players.includes(name)){
+      if (!this.players.includes(name)) {
         this.players.push(name)
         localStorage.setItem('players', JSON.stringify(this.players))
       }
     },
-    removePlayer(name){
+    removePlayer(name: string) {
       const idx = this.players.indexOf(name)
-      if(idx !== -1){
-        this.players.splice(idx,1)
+      if (idx !== -1) {
+        this.players.splice(idx, 1)
         localStorage.setItem('players', JSON.stringify(this.players))
       }
-      if(this.currentPlayer === name){
+      if (this.currentPlayer === name) {
         this.currentPlayer = ''
         localStorage.removeItem('currentPlayer')
       }
     },
-    startNewRoom(creatorName:string){
+    startNewRoom(creatorName: string, deck: (string | number)[] = [...DEFAULT_DECK]) {
       this.players = []
       this.votes = {}
       this.revealed = false
       this.currentPlayer = ''
       this.isCreator = true
+      this.cardDeck = safeDeck(deck)
       localStorage.setItem('players', JSON.stringify(this.players))
       localStorage.setItem('votes', JSON.stringify(this.votes))
       localStorage.setItem('revealed', JSON.stringify(this.revealed))
+      localStorage.setItem('cardDeck', JSON.stringify(this.cardDeck))
       localStorage.removeItem('currentPlayer')
       this.addPlayer(creatorName)
     },
-    setRoom(roomId:string){
+    setRoom(roomId: string) {
       this.currentRoomId = roomId
-    }
-    ,setError(message:string){
+      if (!this.isCreator) {
+        localStorage.removeItem('cardDeck')
+        this.cardDeck = [...DEFAULT_DECK]
+      }
+    },
+    setCardDeck(deck: any) {
+      this.cardDeck = safeDeck(deck)
+      localStorage.setItem('cardDeck', JSON.stringify(this.cardDeck))
+    },
+    setError(message: string) {
       this.error = message
-    }
-    ,setNeedNameModal(v:boolean){
+    },
+    setNeedNameModal(v: boolean) {
       this.needNameModal = v
-    }
-    ,setErrorRedirect(v:boolean){
-      this.errorRedirect = v
-    }
+    },
   }
 })
 

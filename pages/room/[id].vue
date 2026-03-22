@@ -15,7 +15,6 @@
         :current-player="store.currentPlayer"
       />
 
-      <!-- Divider -->
       <div class="w-full max-w-3xl flex items-center gap-4">
         <div class="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent"></div>
         <span class="text-slate-500 text-xs tracking-widest uppercase">Vote</span>
@@ -30,6 +29,7 @@
       />
 
       <CardDeck
+        v-if="store.currentPlayer && store._socketConnected"
         :cards="cards"
         :revealed="revealed"
         :current-vote="votes[store.currentPlayer]"
@@ -51,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+
 import { useRoute } from 'vue-router'
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRoomStore } from '../../stores/room'
@@ -65,7 +66,7 @@ import NameModal from '../../components/NameModal.vue'
 import ErrorModal from '../../components/ErrorModal.vue'
 
 const route = useRoute()
-const roomId = route.params.id
+const roomId = String(route.params.id)
 
 useHead({ title: `Room ${roomId} | Poker Planning` })
 
@@ -73,7 +74,16 @@ const store = useRoomStore()
 const players = computed(() => store.players)
 const votes = computed(() => store.votes)
 const revealed = computed(() => store.revealed)
-const cards = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, '?', '☕']
+const cards = computed(() => {
+  if (!import.meta.client) return []
+  return [
+    ...(Array.isArray(store.cardDeck) && store.cardDeck.length > 0
+      ? store.cardDeck
+      : [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]),
+    '?',
+    '☕',
+  ]
+})
 
 const shareLink = ref('')
 const showNameModal = computed(() => store.needNameModal)
@@ -87,32 +97,21 @@ const handleOutsideClick = (e: MouseEvent) => {
 
 onMounted(() => {
   shareLink.value = `${window.location.origin}/room/${roomId}`
-  if (store.currentRoomId && store.currentRoomId !== String(roomId)) {
-    store.players = []
-    store.votes = {}
-    store.revealed = false
-    localStorage.setItem('players', JSON.stringify(store.players))
-    localStorage.setItem('votes', JSON.stringify(store.votes))
-    localStorage.setItem('revealed', JSON.stringify(store.revealed))
-  }
-  store.setRoom(String(roomId))
+  store.setRoom(roomId)
   if (!store.currentPlayer) {
     store.setNeedNameModal(true)
-  } else if (store.connectSocket) {
-    store.connectSocket(store.currentRoomId, store.currentPlayer)
+  } else {
+    store.connectSocket?.(roomId, store.currentPlayer)
   }
 })
 
-const reveal = store.reveal
-const reset = store.reset
+const reveal = () => store.reveal()
+const reset = () => store.reset()
 const handleVote = (card: any) => store.vote(card)
 const handleNameSubmit = (name: string) => {
-  if (store.connectSocket) {
-    store.currentPlayer = name
-    localStorage.setItem('currentPlayer', name)
-    store.setNeedNameModal(false)
-    store.connectSocket(store.currentRoomId, name)
-  }
+  store.addPlayer(name)
+  store.setNeedNameModal(false)
+  store.connectSocket?.(roomId, name)
 }
 
 const showCongrats = ref(false)
@@ -123,7 +122,7 @@ const allVotesMatch = computed(() => {
   const validVotes = players.value
     .map(p => votes.value[p])
     .filter(v => v !== undefined && v !== '?' && v !== '☕')
-  if (validVotes.length === 0) return false
+  if (!validVotes.length) return false
   return validVotes.every(v => v === validVotes[0])
 })
 

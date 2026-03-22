@@ -53,6 +53,17 @@ const props = defineProps<{
   cards: any[]
 }>()
 
+const TSHIRT_SCALE: Record<string, number> = {
+  XS: 1, S: 2, M: 3, L: 4, XL: 5, XXL: 6,
+}
+const TSHIRT_REVERSE: Record<number, string> = Object.fromEntries(
+  Object.entries(TSHIRT_SCALE).map(([k, v]) => [v, k])
+)
+
+const isTshirt = computed(() =>
+  props.cards.some(c => Object.keys(TSHIRT_SCALE).includes(String(c)))
+)
+
 const voteDistribution = computed(() => {
   if (!props.revealed) return {}
   const dist: Record<string, number> = {}
@@ -77,6 +88,14 @@ const mostCommonVote = computed(() => {
   return entries.reduce((a, b) => b[1] > a[1] ? b : a)[0]
 })
 
+const tshirtScores = computed(() =>
+  props.players
+    .map(p => props.votes[p])
+    .filter(v => v !== undefined && v !== '?' && v !== '☕' && TSHIRT_SCALE[String(v)] !== undefined)
+    .map(v => TSHIRT_SCALE[String(v)])
+    .sort((a, b) => a - b)
+)
+
 const numericVotes = computed(() =>
   props.players
     .map(p => props.votes[p])
@@ -87,12 +106,27 @@ const numericVotes = computed(() =>
 )
 
 const averageVote = computed(() => {
+  if (isTshirt.value) {
+    const scores = tshirtScores.value
+    if (!scores.length) return '-'
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length
+    return TSHIRT_REVERSE[Math.round(avg)] ?? '-'
+  }
   if (!numericVotes.value.length) return '-'
   const avg = numericVotes.value.reduce((a, b) => a + b, 0) / numericVotes.value.length
   return Number.isInteger(avg) ? avg : avg.toFixed(1)
 })
 
 const medianVote = computed(() => {
+  if (isTshirt.value) {
+    const scores = tshirtScores.value
+    if (!scores.length) return '-'
+    const mid = Math.floor(scores.length / 2)
+    const median = scores.length % 2 !== 0
+      ? scores[mid]
+      : (scores[mid - 1] + scores[mid]) / 2
+    return TSHIRT_REVERSE[Math.round(median)] ?? '-'
+  }
   const sorted = numericVotes.value
   if (!sorted.length) return '-'
   const mid = Math.floor(sorted.length / 2)
