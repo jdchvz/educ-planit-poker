@@ -15,7 +15,7 @@
         <div class="space-y-5">
           <div>
             <label class="block text-xs uppercase font-semibold mb-2 tracking-wider text-slate-400">Name</label>
-            <input v-model="playerName" placeholder="Enter your name" class="form-input" />
+            <input v-model="playerName" placeholder="Enter your name" class="form-input" @keyup.enter="createRoom" />
           </div>
           <DeckSelector v-model="selectedDeck" />
           <div class="flex gap-4 pt-2">

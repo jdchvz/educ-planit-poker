@@ -17,5 +17,6 @@ const deckOptions = [
   { label: 'Modified Fibonacci (0, 1, 2, 3, 5, 8, 13, 21, 40, 100)', value: [0, 1, 2, 3, 5, 8, 13, 21, 40, 100] },
   { label: 'T-Shirt (XS, S, M, L, XL, XXL)', value: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
   { label: 'Powers of 2 (1, 2, 4, 8, 16, 32, 64)', value: [1, 2, 4, 8, 16, 32, 64] },
+  { label: 'CEM Custom (0, 1, 2, 5, 10, 20, 30, 50, 70, 100, 200, 500, 1k, 2k, 3k)', value: [0, 1, 2, 5, 10, 20, 30, 50, 70, 100, 200, 500, '1k', '2k', '3k'] },
 ]
 </script>
