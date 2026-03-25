@@ -1,7 +1,10 @@
 <template>
-  <div class="min-h-screen flex flex-col items-center pt-6 md:pt-10 pb-20 bg-[#0f1e33] text-white"
-    @click="handleOutsideClick">
-
+  <div
+    class="min-h-screen flex flex-col items-center pt-6 md:pt-10 pb-20 transition-colors duration-300"
+    :class="dark ? 'bg-[#0f1e33] text-white' : 'bg-slate-100 text-slate-800'"
+    @click="handleOutsideClick"
+  >
+    <ThemeToggle />
     <RoomNavbar :share-link="shareLink" ref="navbarRef" />
     <RoomHeader :room-id="roomId" />
     <CongratsOverlay :show="showCongrats" :agreed-value="agreedValue" />
@@ -16,9 +19,18 @@
       />
 
       <div class="w-full max-w-3xl flex items-center gap-4">
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent"></div>
-        <span class="text-slate-500 text-xs tracking-widest uppercase">Vote</span>
-        <div class="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent"></div>
+        <div
+          class="flex-1 h-px bg-gradient-to-r from-transparent to-transparent transition-colors duration-300"
+          :class="dark ? 'via-slate-600' : 'via-slate-300'"
+        ></div>
+        <span
+          class="text-xs tracking-widest uppercase transition-colors duration-300"
+          :class="dark ? 'text-slate-500' : 'text-slate-400'"
+        >Vote</span>
+        <div
+          class="flex-1 h-px bg-gradient-to-r from-transparent to-transparent transition-colors duration-300"
+          :class="dark ? 'via-slate-600' : 'via-slate-300'"
+        ></div>
       </div>
 
       <VoteActions
@@ -51,19 +63,11 @@
 </template>
 
 <script setup lang="ts">
-
-import { useRoute } from 'vue-router'
+import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRoomStore } from '../../stores/room'
-import RoomNavbar from '../../components/RoomNavbar.vue'
-import RoomHeader from '../../components/RoomHeader.vue'
-import CongratsOverlay from '../../components/CongratsOverlay.vue'
-import PlayerList from '../../components/PlayerList.vue'
-import CardDeck from '../../components/CardDeck.vue'
-import VoteActions from '../../components/VoteActions.vue'
-import VoteDistributionChart from '../../components/VoteDistributionChart.vue'
-import NameModal from '../../components/NameModal.vue'
-import ErrorModal from '../../components/ErrorModal.vue'
+import { useHead } from 'nuxt/app'
+import { useTheme } from '../../composables/useTheme'
 
 const route = useRoute()
 const roomId = String(route.params.id)
@@ -71,6 +75,8 @@ const roomId = String(route.params.id)
 useHead({ title: `Room ${roomId} | Poker Planning` })
 
 const store = useRoomStore()
+const { dark } = useTheme()
+
 const players = computed(() => store.players)
 const votes = computed(() => store.votes)
 const revealed = computed(() => store.revealed)
@@ -96,6 +102,7 @@ const handleOutsideClick = (e: MouseEvent) => {
 }
 
 onMounted(() => {
+  store.init()
   shareLink.value = `${window.location.origin}/room/${roomId}`
   store.setRoom(roomId)
   if (!store.currentPlayer) {
@@ -103,6 +110,13 @@ onMounted(() => {
   } else {
     store.connectSocket?.(roomId, store.currentPlayer)
   }
+})
+
+// clean up when leaving room
+onBeforeRouteLeave(() => {
+  store.disconnectSocket?.(roomId)
+  store.isCreator = false
+  localStorage.removeItem('isCreator')
 })
 
 const reveal = () => store.reveal()
@@ -122,7 +136,6 @@ const allVotesMatch = computed(() => {
   const validVotes = players.value
     .map(p => votes.value[p])
     .filter(v => v !== undefined && v !== '?' && v !== '☕')
-  // Need at least 2 valid voters to agree
   if (validVotes.length < 2) return false
   return validVotes.every(v => v === validVotes[0])
 })
@@ -132,9 +145,7 @@ watch(allVotesMatch, (val) => {
     const validVotes = players.value
       .map(p => votes.value[p])
       .filter(v => v !== undefined && v !== '?' && v !== '☕')
-    // Pick the agreed value from valid votes, not from a specific player index
-    const uniqueValues = [...new Set(validVotes)]
-    agreedValue.value = uniqueValues.length === 1 ? uniqueValues[0] : null
+    agreedValue.value = [...new Set(validVotes)][0] ?? null
     showCongrats.value = true
     setTimeout(() => showCongrats.value = false, 4000)
   }

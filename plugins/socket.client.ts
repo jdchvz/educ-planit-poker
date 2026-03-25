@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client'
 import { useRoomStore } from '../stores/room'
+import { defineNuxtPlugin } from 'nuxt/app'
 
 export default defineNuxtPlugin((nuxtApp: any) => {
   let socket: Socket | null = null

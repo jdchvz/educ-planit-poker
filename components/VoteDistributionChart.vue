@@ -1,42 +1,90 @@
 <template>
   <transition enter-active-class="transition-all duration-500" enter-from-class="opacity-0 translate-y-4" enter-to-class="opacity-100 translate-y-0">
-    <div v-if="revealed && Object.keys(voteDistribution).length > 0"
-      class="w-full max-w-3xl bg-[#132a49] border border-slate-700 rounded-xl p-4 md:p-6 shadow-lg">
-      <h3 class="text-sm font-semibold tracking-widest uppercase text-slate-400 mb-4">Vote Distribution</h3>
+    <div
+      v-if="revealed && Object.keys(voteDistribution).length > 0"
+      class="w-full max-w-3xl rounded-xl p-4 md:p-6 shadow-lg border transition-colors duration-300"
+      :class="dark
+        ? 'bg-[#132a49] border-slate-700'
+        : 'bg-white border-slate-200 shadow-slate-200/60'"
+    >
+      <h3
+        class="text-sm font-semibold tracking-widest uppercase mb-4 transition-colors duration-300"
+        :class="dark ? 'text-slate-400' : 'text-slate-500'"
+      >
+        Vote Distribution
+      </h3>
+
       <div class="flex items-end justify-center gap-2 md:gap-4 pt-10 overflow-x-auto">
-        <div v-for="(count, value) in voteDistribution" :key="value"
-          class="flex flex-col items-center gap-2 flex-1 min-w-[40px] max-w-[80px]">
+        <div
+          v-for="(count, value) in voteDistribution"
+          :key="value"
+          class="flex flex-col items-center gap-2 flex-1 min-w-[40px] max-w-[80px]"
+        >
           <div class="h-6 flex items-center justify-center">
             <span v-if="value === mostCommonVote" class="text-xl">👑</span>
           </div>
-          <span class="text-sm font-bold" :class="value === mostCommonVote ? 'text-sky-400' : 'text-slate-300'">
+          <span
+            class="text-sm font-bold transition-colors duration-300"
+            :class="value === mostCommonVote
+              ? 'text-sky-500'
+              : dark ? 'text-slate-300' : 'text-slate-600'"
+          >
             {{ count }}
           </span>
-          <div class="w-full rounded-t-lg transition-all duration-700"
-            :class="value === mostCommonVote ? 'bg-sky-500 shadow-lg shadow-sky-900/50' : 'bg-slate-600'"
-            :style="{ height: `${(count / maxVoteCount) * 120}px` }">
-          </div>
-          <div class="text-xs md:text-sm font-bold px-1 py-1 rounded"
-            :class="value === mostCommonVote ? 'text-sky-400 font-extrabold' : 'text-slate-400'">
+          <div
+            class="w-full rounded-t-lg transition-all duration-700"
+            :class="value === mostCommonVote
+              ? 'bg-sky-500 shadow-lg shadow-sky-900/50'
+              : dark ? 'bg-slate-600' : 'bg-slate-300'"
+            :style="{ height: `${(count / maxVoteCount) * 120}px` }"
+          />
+          <div
+            class="text-xs md:text-sm font-bold px-1 py-1 rounded transition-colors duration-300"
+            :class="value === mostCommonVote
+              ? 'text-sky-500 font-extrabold'
+              : dark ? 'text-slate-400' : 'text-slate-500'"
+          >
             {{ value }}
           </div>
         </div>
       </div>
 
-      <div class="mt-4 text-center text-sm text-slate-400">
-        Most voted: <span class="text-sky-400 font-bold text-base">{{ mostCommonVote }}</span>
-        <span class="text-slate-500 ml-1">({{ maxVoteCount }} {{ maxVoteCount === 1 ? 'vote' : 'votes' }})</span>
+      <div
+        class="mt-4 text-center text-sm transition-colors duration-300"
+        :class="dark ? 'text-slate-400' : 'text-slate-500'"
+      >
+        Most voted:
+        <span class="text-sky-500 font-bold text-base">{{ mostCommonVote }}</span>
+        <span
+          class="ml-1 transition-colors duration-300"
+          :class="dark ? 'text-slate-500' : 'text-slate-400'"
+        >
+          ({{ maxVoteCount }} {{ maxVoteCount === 1 ? 'vote' : 'votes' }})
+        </span>
       </div>
 
       <!-- Average & Median -->
-      <div class="mt-4 pt-4 border-t border-slate-700 grid grid-cols-2 gap-4 text-center">
+      <div
+        class="mt-4 pt-4 border-t grid grid-cols-2 gap-4 text-center transition-colors duration-300"
+        :class="dark ? 'border-slate-700' : 'border-slate-200'"
+      >
         <div class="flex flex-col gap-1">
-          <span class="text-xs font-semibold tracking-widest uppercase text-slate-500">Average</span>
-          <span class="text-2xl font-extrabold text-emerald-400">{{ averageVote }}</span>
+          <span
+            class="text-xs font-semibold tracking-widest uppercase transition-colors duration-300"
+            :class="dark ? 'text-slate-500' : 'text-slate-400'"
+          >
+            Average
+          </span>
+          <span class="text-2xl font-extrabold text-emerald-500">{{ averageVote }}</span>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-xs font-semibold tracking-widest uppercase text-slate-500">Median</span>
-          <span class="text-2xl font-extrabold text-violet-400">{{ medianVote }}</span>
+          <span
+            class="text-xs font-semibold tracking-widest uppercase transition-colors duration-300"
+            :class="dark ? 'text-slate-500' : 'text-slate-400'"
+          >
+            Median
+          </span>
+          <span class="text-2xl font-extrabold text-violet-500">{{ medianVote }}</span>
         </div>
       </div>
     </div>
@@ -45,6 +93,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useTheme } from '../composables/useTheme';
 
 const props = defineProps<{
   revealed: boolean
@@ -52,6 +101,8 @@ const props = defineProps<{
   votes: Record<string, any>
   cards: any[]
 }>()
+
+const { dark } = useTheme()
 
 const TSHIRT_SCALE: Record<string, number> = {
   XS: 1, S: 2, M: 3, L: 4, XL: 5, XXL: 6,
