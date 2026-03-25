@@ -1,7 +1,18 @@
 <template>
   <div>
-    <label class="block text-xs uppercase font-semibold mb-2 tracking-wider text-slate-400">Card Deck</label>
-    <select v-model="model" class="form-input bg-[#0f1e33] cursor-pointer w-full">
+    <label
+      class="block text-xs uppercase font-semibold mb-2 tracking-wider transition-colors duration-300"
+      :class="dark ? 'text-slate-400' : 'text-slate-500'"
+    >
+      Card Deck
+    </label>
+    <select
+      v-model="model"
+      class="w-full px-4 py-3 rounded-lg border outline-none cursor-pointer transition-colors duration-300 focus:ring-2"
+      :class="dark
+        ? 'bg-[#0f1e33] border-[#2e4f70] text-slate-100 focus:border-blue-500 focus:bg-[#173256] focus:ring-sky-500/40'
+        : 'bg-white border-slate-300 text-slate-800 focus:border-emerald-400 focus:ring-emerald-400/40'"
+    >
       <option v-for="deck in deckOptions" :key="deck.label" :value="deck.value">
         {{ deck.label }}
       </option>
@@ -10,6 +21,8 @@
 </template>
 
 <script setup lang="ts">
+const { dark } = useTheme()
+
 const model = defineModel<(string | number)[]>({ required: true })
 
 const deckOptions = [
