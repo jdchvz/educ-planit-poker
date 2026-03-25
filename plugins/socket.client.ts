@@ -5,6 +5,7 @@ import { defineNuxtPlugin } from 'nuxt/app'
 export default defineNuxtPlugin((nuxtApp: any) => {
   let socket: Socket | null = null
   const store = useRoomStore() as any
+  let privateVotes: Record<string, any> = {} // Hidden from DevTools
 
   function connect(roomId: string, name: string) {
     if (socket) return
@@ -28,9 +29,8 @@ export default defineNuxtPlugin((nuxtApp: any) => {
         })
       } else {
         // Reset votes and revealed state when joining a room
-        store.votes = {}
+        privateVotes = {}
         store.revealed = false
-        localStorage.setItem('votes', JSON.stringify(store.votes))
         localStorage.setItem('revealed', JSON.stringify(store.revealed))
         socket!.emit('join-room', { roomId, name })
       }
@@ -46,23 +46,29 @@ export default defineNuxtPlugin((nuxtApp: any) => {
 
     socket.on('votes-sync', (payload: { roomId: string; votes: Record<string, any> }) => {
       if (payload.roomId === store.currentRoomId) {
-        store.votes = { ...payload.votes }
-        localStorage.setItem('votes', JSON.stringify(store.votes))
+        privateVotes = { ...payload.votes }
+        // Only expose player names who have voted (not their actual votes)
+        store.votes = Object.keys(privateVotes).reduce((acc, player) => {
+          acc[player] = privateVotes[player] ? '●' : null
+          return acc
+        }, {} as Record<string, any>)
       }
     })
 
     socket.on('reveal-update', (payload: { roomId: string }) => {
       if (payload.roomId === store.currentRoomId) {
         store.revealed = true
+        // Now expose actual votes only after reveal
+        store.votes = privateVotes
         localStorage.setItem('revealed', JSON.stringify(store.revealed))
       }
     })
 
     socket.on('reset-update', (payload: { roomId: string }) => {
       if (payload.roomId === store.currentRoomId) {
+        privateVotes = {}
         store.votes = {}
         store.revealed = false
-        localStorage.setItem('votes', JSON.stringify(store.votes))
         localStorage.setItem('revealed', JSON.stringify(store.revealed))
       }
     })
@@ -75,11 +81,11 @@ export default defineNuxtPlugin((nuxtApp: any) => {
       store.setError(`Room "${payload.roomId}" was not found. Redirecting to home...`)
       store.currentRoomId = ''
       store.players = []
+      privateVotes = {}
       store.votes = {}
       store.revealed = false
       store.isCreator = false
       localStorage.setItem('players', JSON.stringify(store.players))
-      localStorage.setItem('votes', JSON.stringify(store.votes))
       localStorage.setItem('revealed', JSON.stringify(store.revealed))
       socket?.disconnect()
       store._socketConnected = false
