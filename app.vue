@@ -4,5 +4,11 @@
 
 <script setup>
 const themeStore = useThemeStore()
-onMounted(() => themeStore.initTheme())
+
+onMounted(() => {
+  const stored = localStorage.getItem('theme')
+  if (stored !== null) {
+    themeStore.setDark(stored !== 'light')
+  }
+})
 </script>

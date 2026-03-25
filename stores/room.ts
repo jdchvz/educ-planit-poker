@@ -14,6 +14,7 @@ export const useRoomStore = defineStore('room', {
     currentRoomId: '',
     _socketConnected: false,
     error: '',
+    errorRedirect: false,        // ← add this
     isCreator: false,
     needNameModal: false,
     cardDeck: [...DEFAULT_DECK] as (string | number)[],
@@ -89,11 +90,12 @@ export const useRoomStore = defineStore('room', {
       this.cardDeck = safeDeck(deck)
       localStorage.setItem('cardDeck', JSON.stringify(this.cardDeck))
     },
-    setError(message: string) {
-      this.error = message
+    setError(msg: string, redirect = false) {
+      this.error = msg
+      this.errorRedirect = redirect
     },
-    setNeedNameModal(v: boolean) {
-      this.needNameModal = v
+    setNeedNameModal(val: boolean) {
+      this.needNameModal = val
     },
   }
 })

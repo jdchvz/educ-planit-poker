@@ -1,11 +1,12 @@
 import { useThemeStore } from '@/stores/theme'
-import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
 
 export const useTheme = () => {
   const store = useThemeStore()
+  const { dark } = storeToRefs(store)
 
   return {
-    dark: computed(() => store.dark),
+    dark,
     toggleTheme: store.toggleTheme,
   }
 }

@@ -66,6 +66,8 @@
 import { useRoute } from 'vue-router'
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRoomStore } from '../../stores/room'
+import { useHead } from 'nuxt/app'
+import { useTheme } from '../../composables/useTheme'
 
 const route = useRoute()
 const roomId = String(route.params.id)
