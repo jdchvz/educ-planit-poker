@@ -5,7 +5,7 @@ import { defineNuxtPlugin } from 'nuxt/app'
 export default defineNuxtPlugin((nuxtApp: any) => {
   let socket: Socket | null = null
   const store = useRoomStore() as any
-  let privateVotes: Record<string, any> = {} // Hidden from DevTools
+  let currentRoundId: string = ''
 
   function connect(roomId: string, name: string) {
     if (socket) return
@@ -28,8 +28,7 @@ export default defineNuxtPlugin((nuxtApp: any) => {
           deck: Array.isArray(store.cardDeck) ? store.cardDeck : [...[1, 2, 3, 5, 8, 13, 21, 34, 55, 89]],
         })
       } else {
-        // Reset votes and revealed state when joining a room
-        privateVotes = {}
+        currentRoundId = ''
         store.revealed = false
         localStorage.setItem('revealed', JSON.stringify(store.revealed))
         socket!.emit('join-room', { roomId, name })
@@ -44,33 +43,24 @@ export default defineNuxtPlugin((nuxtApp: any) => {
       store.players = payload.players
     })
 
-    socket.on('votes-sync', (payload: { roomId: string; votes: Record<string, any> }) => {
-      if (payload.roomId === store.currentRoomId) {
-        privateVotes = { ...payload.votes }
-        // Only expose player names who have voted (not their actual votes)
-        store.votes = Object.keys(privateVotes).reduce((acc, player) => {
-          acc[player] = privateVotes[player] ? '●' : null
-          return acc
-        }, {} as Record<string, any>)
-      }
+    socket.on('votes-sync', (payload: { roomId: string; votes: Record<string, any>; roundId: string }) => {
+      if (payload.roomId !== store.currentRoomId) return
+      currentRoundId = payload.roundId
+      store.votes = { ...payload.votes } // Server already handles masking/revealing
     })
 
-    socket.on('reveal-update', (payload: { roomId: string }) => {
-      if (payload.roomId === store.currentRoomId) {
-        store.revealed = true
-        // Now expose actual votes only after reveal
-        store.votes = privateVotes
-        localStorage.setItem('revealed', JSON.stringify(store.revealed))
-      }
+    socket.on('reveal-update', (payload: { roomId: string; roundId: string }) => {
+      if (payload.roomId !== store.currentRoomId) return
+      store.revealed = true
+      localStorage.setItem('revealed', JSON.stringify(store.revealed))
     })
 
-    socket.on('reset-update', (payload: { roomId: string }) => {
-      if (payload.roomId === store.currentRoomId) {
-        privateVotes = {}
-        store.votes = {}
-        store.revealed = false
-        localStorage.setItem('revealed', JSON.stringify(store.revealed))
-      }
+    socket.on('reset-update', (payload: { roomId: string; roundId: string }) => {
+      if (payload.roomId !== store.currentRoomId) return
+      currentRoundId = payload.roundId
+      store.votes = {}
+      store.revealed = false
+      localStorage.setItem('revealed', JSON.stringify(store.revealed))
     })
 
     socket.on('deck-sync', (payload: { deck: (string | number)[] }) => {
@@ -81,10 +71,7 @@ export default defineNuxtPlugin((nuxtApp: any) => {
       store.setError(`Room "${payload.roomId}" was not found. Redirecting to home...`)
       store.currentRoomId = ''
       store.players = []
-      privateVotes = {}
-      store.votes = {}
-      store.revealed = false
-      store.isCreator = false
+      currentRoundId = ''
       localStorage.setItem('players', JSON.stringify(store.players))
       localStorage.setItem('revealed', JSON.stringify(store.revealed))
       socket?.disconnect()
@@ -121,16 +108,23 @@ export default defineNuxtPlugin((nuxtApp: any) => {
 
   store.connectSocket = connect
   store.disconnectSocket = disconnect
+
   store.emitVote = (card: any) => {
-    if (socket && store.currentRoomId && store.currentPlayer) {
-      socket.emit('vote', { roomId: store.currentRoomId, name: store.currentPlayer, card })
+    if (socket && store.currentRoomId && store.currentPlayer && currentRoundId) {
+      socket.emit('vote', { 
+        roomId: store.currentRoomId,
+        card,
+        roundId: currentRoundId // Server validates this, name comes from server-side socketMap
+      })
     }
   }
+
   store.emitReveal = () => {
     if (socket && store.currentRoomId) {
       socket.emit('reveal', { roomId: store.currentRoomId })
     }
   }
+
   store.emitReset = () => {
     if (socket && store.currentRoomId) {
       socket.emit('reset', { roomId: store.currentRoomId })
