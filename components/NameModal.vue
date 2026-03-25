@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
+import { useTheme } from '../composables/useTheme';
 
 const props = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ (e: 'submit', name: string): void }>()

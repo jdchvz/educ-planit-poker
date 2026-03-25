@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { useRoute, onBeforeRouteLeave } from 'vue-router'
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRoomStore } from '../../stores/room'
 import { useHead } from 'nuxt/app'
@@ -102,6 +102,7 @@ const handleOutsideClick = (e: MouseEvent) => {
 }
 
 onMounted(() => {
+  store.init()
   shareLink.value = `${window.location.origin}/room/${roomId}`
   store.setRoom(roomId)
   if (!store.currentPlayer) {
@@ -109,6 +110,13 @@ onMounted(() => {
   } else {
     store.connectSocket?.(roomId, store.currentPlayer)
   }
+})
+
+// clean up when leaving room
+onBeforeRouteLeave(() => {
+  store.disconnectSocket?.(roomId)
+  store.isCreator = false
+  localStorage.removeItem('isCreator')
 })
 
 const reveal = () => store.reveal()
@@ -137,8 +145,7 @@ watch(allVotesMatch, (val) => {
     const validVotes = players.value
       .map(p => votes.value[p])
       .filter(v => v !== undefined && v !== '?' && v !== '☕')
-    const uniqueValues = [...new Set(validVotes)]
-    agreedValue.value = uniqueValues.length === 1 ? uniqueValues[0] : null
+    agreedValue.value = [...new Set(validVotes)][0] ?? null
     showCongrats.value = true
     setTimeout(() => showCongrats.value = false, 4000)
   }

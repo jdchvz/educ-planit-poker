@@ -63,6 +63,8 @@
 </template>
 
 <script setup lang="ts">
+import { useTheme } from '../composables/useTheme';
+
 defineProps<{
   players: string[]
   votes: Record<string, any>

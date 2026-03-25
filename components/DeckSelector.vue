@@ -21,6 +21,8 @@
 </template>
 
 <script setup lang="ts">
+import { useTheme } from '../composables/useTheme';
+
 const { dark } = useTheme()
 
 const model = defineModel<(string | number)[]>({ required: true })

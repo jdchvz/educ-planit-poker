@@ -43,6 +43,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoomStore } from '../stores/room'
+import { useTheme } from '../composables/useTheme'
 
 const store = useRoomStore()
 const { dark } = useTheme()

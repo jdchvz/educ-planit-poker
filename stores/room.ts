@@ -14,52 +14,39 @@ export const useRoomStore = defineStore('room', {
     currentRoomId: '',
     _socketConnected: false,
     error: '',
-    errorRedirect: false,        // ← add this
+    errorRedirect: false,
     isCreator: false,
     needNameModal: false,
     cardDeck: [...DEFAULT_DECK] as (string | number)[],
   }),
   actions: {
     init() {
+      // only restore what's needed for reconnection
+      this.currentPlayer = localStorage.getItem('currentPlayer') || ''
+      this.isCreator = localStorage.getItem('isCreator') === 'true'
       let savedDeck: any = null
       try { savedDeck = JSON.parse(localStorage.getItem('cardDeck') || 'null') } catch { savedDeck = null }
-      this.players = JSON.parse(localStorage.getItem('players') || '[]')
-      this.votes = JSON.parse(localStorage.getItem('votes') || '{}')
-      this.revealed = JSON.parse(localStorage.getItem('revealed') || 'false')
-      this.currentPlayer = localStorage.getItem('currentPlayer') || ''
       this.cardDeck = safeDeck(savedDeck)
+      // players/votes/revealed are always synced from server via socket
     },
     vote(card: any) {
       if (this.revealed) return
       ;(this as any).emitVote?.(card)
     },
     reveal() {
-      this.revealed = true
-      localStorage.setItem('revealed', JSON.stringify(this.revealed))
       ;(this as any).emitReveal?.()
     },
     reset() {
-      this.votes = {}
-      this.revealed = false
-      localStorage.setItem('votes', JSON.stringify(this.votes))
-      localStorage.setItem('revealed', JSON.stringify(this.revealed))
       ;(this as any).emitReset?.()
     },
     addPlayer(name: string) {
       if (!name) return
       this.currentPlayer = name
       localStorage.setItem('currentPlayer', name)
-      if (!this.players.includes(name)) {
-        this.players.push(name)
-        localStorage.setItem('players', JSON.stringify(this.players))
-      }
     },
     removePlayer(name: string) {
       const idx = this.players.indexOf(name)
-      if (idx !== -1) {
-        this.players.splice(idx, 1)
-        localStorage.setItem('players', JSON.stringify(this.players))
-      }
+      if (idx !== -1) this.players.splice(idx, 1)
       if (this.currentPlayer === name) {
         this.currentPlayer = ''
         localStorage.removeItem('currentPlayer')
@@ -72,9 +59,7 @@ export const useRoomStore = defineStore('room', {
       this.currentPlayer = ''
       this.isCreator = true
       this.cardDeck = safeDeck(deck)
-      localStorage.setItem('players', JSON.stringify(this.players))
-      localStorage.setItem('votes', JSON.stringify(this.votes))
-      localStorage.setItem('revealed', JSON.stringify(this.revealed))
+      localStorage.setItem('isCreator', 'true')
       localStorage.setItem('cardDeck', JSON.stringify(this.cardDeck))
       localStorage.removeItem('currentPlayer')
       this.addPlayer(creatorName)
@@ -97,7 +82,7 @@ export const useRoomStore = defineStore('room', {
     setNeedNameModal(val: boolean) {
       this.needNameModal = val
     },
-  }
+  },
 })
 
 declare module 'pinia' {
