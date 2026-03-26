@@ -13,8 +13,10 @@
     "dev:all": "run-p socket dev"
   },
   "dependencies": {
+    "@emoji-mart/data": "^1.2.1",
     "@pinia/nuxt": "^0.5.1",
     "autoprefixer": "^10.4.16",
+    "emoji-mart": "^5.6.0",
     "ioredis": "^5.10.1",
     "nuxt": "4.2.1",
     "pinia": "^2.1.7",
