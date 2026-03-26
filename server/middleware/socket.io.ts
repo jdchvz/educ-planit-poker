@@ -3,10 +3,11 @@ import { Server } from 'socket.io'
 const rooms = new Map<string, Set<string>>()
 const roomVotes = new Map<string, Map<string, string>>()
 const roomDecks = new Map<string, (string | number)[]>()
-const roomCreators = new Map<string, string>() // Track creator socket.id
+const roomCreators = new Map<string, string>()
 const socketMap = new Map<string, { roomId: string; name: string }>()
 const roomRevealed = new Map<string, boolean>()
 const roomRoundIds = new Map<string, string>()
+const emojiThrottleMap = new Map<string, number>() // module-level so disconnect can clean it up
 
 const DEFAULT_DECK = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]
 
@@ -16,26 +17,29 @@ function generateRoundId(): string {
   return Math.random().toString(36).substring(2, 10)
 }
 
-// Only send masked votes (who voted, not what they voted)
 function getMaskedVotes(votes: Map<string, string>): Record<string, any> {
   return Object.fromEntries(
     Array.from(votes.entries()).map(([player, vote]) => [player, vote ? '●' : null])
   )
 }
 
-// Helper function to send personalized votes to each player in a room
-async function broadcastVotes(io: Server, roomId: string, roundId: string | undefined, votes: Map<string, string>, revealed: boolean) {
+async function broadcastVotes(
+  io: Server,
+  roomId: string,
+  roundId: string | undefined,
+  votes: Map<string, string>,
+  revealed: boolean
+) {
   const roomSockets = await io.in(roomId).fetchSockets()
   for (const s of roomSockets) {
     const sInfo = socketMap.get(s.id)
     if (!sInfo) continue
-
     const personalizedVotes = revealed
-      ? Object.fromEntries(votes) // Everyone sees all votes after reveal
+      ? Object.fromEntries(votes)
       : Object.fromEntries(
           Array.from(votes.entries()).map(([player, vote]) => [
             player,
-            player === sInfo.name ? vote : (vote ? '●' : null)
+            player === sInfo.name ? vote : (vote ? '●' : null),
           ])
         )
     s.emit('votes-sync', { roomId, roundId, votes: personalizedVotes })
@@ -53,7 +57,7 @@ export default defineEventHandler((event) => {
   const io = new Server(server, {
     path: '/socket.io',
     transports: ['polling', 'websocket'],
-    cors: { origin: '*', methods: ['GET', 'POST'] }
+    cors: { origin: '*', methods: ['GET', 'POST'] },
   })
 
   ioInstance = io
@@ -85,7 +89,7 @@ export default defineEventHandler((event) => {
       socketMap.set(socket.id, { roomId, name })
       players.add(name)
       if (!roomVotes.has(roomId)) roomVotes.set(roomId, new Map())
-      
+
       const revealed = roomRevealed.get(roomId) ?? false
       const roundId = roomRoundIds.get(roomId) ?? generateRoundId()
       const votes = roomVotes.get(roomId)!
@@ -96,7 +100,6 @@ export default defineEventHandler((event) => {
     })
 
     socket.on('leave-room', async ({ roomId, name }: { roomId: string; name: string }) => {
-      // Validate the socket owns this name
       const info = socketMap.get(socket.id)
       if (!info || info.name !== name || info.roomId !== roomId) return
 
@@ -106,7 +109,6 @@ export default defineEventHandler((event) => {
       socketMap.delete(socket.id)
 
       const remainingPlayers = rooms.get(roomId)
-      // Clean up room data if no players left
       if (!remainingPlayers || remainingPlayers.size === 0) {
         rooms.delete(roomId)
         roomVotes.delete(roomId)
@@ -133,12 +135,10 @@ export default defineEventHandler((event) => {
       if (!roomVotes.has(roomId)) roomVotes.set(roomId, new Map())
       roomVotes.get(roomId)!.set(name, card)
 
-      const votes = roomVotes.get(roomId)!
-      await broadcastVotes(io, roomId, roundId, votes, false) // use io not ioInstance
+      await broadcastVotes(io, roomId, roundId, roomVotes.get(roomId)!, false)
     })
 
     socket.on('reveal', async ({ roomId }: { roomId: string }) => {
-      // Validate socket belongs to this room
       const info = socketMap.get(socket.id)
       if (!info || info.roomId !== roomId) return
       const roundId = roomRoundIds.get(roomId)
@@ -148,7 +148,6 @@ export default defineEventHandler((event) => {
     })
 
     socket.on('reset', async ({ roomId }: { roomId: string }) => {
-      // Validate socket belongs to this room
       const info = socketMap.get(socket.id)
       if (!info || info.roomId !== roomId) return
       const newRoundId = generateRoundId()
@@ -159,16 +158,32 @@ export default defineEventHandler((event) => {
       io.to(roomId).emit('reset-update', { roomId, roundId: newRoundId })
     })
 
+    socket.on('emoji-throw', ({ roomId, to, emoji }: { roomId: string; to: string; emoji: string }) => {
+      const info = socketMap.get(socket.id)
+      if (!info || info.roomId !== roomId) return
+      if (info.name === to) return
+      if (typeof emoji !== 'string' || emoji.length > 10) return
+
+      const now = Date.now()
+      const last = emojiThrottleMap.get(socket.id) ?? 0
+      if (now - last < 300) return
+      emojiThrottleMap.set(socket.id, now)
+
+      io.to(roomId).emit('emoji-throw', { from: info.name, to, emoji })
+    })
+
     socket.on('disconnect', async () => {
+      emojiThrottleMap.delete(socket.id)
+
       const info = socketMap.get(socket.id)
       if (!info) return
       const { roomId, name } = info
+
       rooms.get(roomId)?.delete(name)
       roomVotes.get(roomId)?.delete(name)
       socketMap.delete(socket.id)
 
       const remainingPlayers = rooms.get(roomId)
-      // Clean up room data if no players left
       if (!remainingPlayers || remainingPlayers.size === 0) {
         rooms.delete(roomId)
         roomVotes.delete(roomId)

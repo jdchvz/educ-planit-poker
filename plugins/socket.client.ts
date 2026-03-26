@@ -1,10 +1,12 @@
 import { io, Socket } from 'socket.io-client'
 import { useRoomStore } from '../stores/room'
+import { useEmojiThrow } from '../composables/useEmojiThrow'
 import { defineNuxtPlugin } from 'nuxt/app'
 
 export default defineNuxtPlugin((nuxtApp: any) => {
   let socket: Socket | null = null
   const store = useRoomStore() as any
+  const { addThrow } = useEmojiThrow()
   let currentRoundId: string = ''
 
   function connect(roomId: string, name: string) {
@@ -46,7 +48,7 @@ export default defineNuxtPlugin((nuxtApp: any) => {
     socket.on('votes-sync', (payload: { roomId: string; votes: Record<string, any>; roundId: string }) => {
       if (payload.roomId !== store.currentRoomId) return
       currentRoundId = payload.roundId
-      store.votes = { ...payload.votes } // Server already handles masking/revealing
+      store.votes = { ...payload.votes }
     })
 
     socket.on('reveal-update', (payload: { roomId: string; roundId: string }) => {
@@ -65,6 +67,10 @@ export default defineNuxtPlugin((nuxtApp: any) => {
 
     socket.on('deck-sync', (payload: { deck: (string | number)[] }) => {
       store.setCardDeck(payload.deck)
+    })
+
+    socket.on('emoji-throw', (payload: { from: string; to: string; emoji: string }) => {
+      addThrow(payload.emoji, payload.from, payload.to)
     })
 
     socket.on('room-not-found', (payload: { roomId: string }) => {
@@ -111,10 +117,10 @@ export default defineNuxtPlugin((nuxtApp: any) => {
 
   store.emitVote = (card: any) => {
     if (socket && store.currentRoomId && store.currentPlayer && currentRoundId) {
-      socket.emit('vote', { 
+      socket.emit('vote', {
         roomId: store.currentRoomId,
         card,
-        roundId: currentRoundId // Server validates this, name comes from server-side socketMap
+        roundId: currentRoundId,
       })
     }
   }
@@ -128,6 +134,16 @@ export default defineNuxtPlugin((nuxtApp: any) => {
   store.emitReset = () => {
     if (socket && store.currentRoomId) {
       socket.emit('reset', { roomId: store.currentRoomId })
+    }
+  }
+
+  store.emitEmojiThrow = (to: string, emoji: string) => {
+    if (socket && store.currentRoomId) {
+      socket.emit('emoji-throw', {
+        roomId: store.currentRoomId,
+        to,
+        emoji,
+      })
     }
   }
 })

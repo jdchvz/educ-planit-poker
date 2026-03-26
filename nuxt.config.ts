@@ -26,4 +26,9 @@ export default defineNuxtConfig({
       formspreeId: process.env.NUXT_PUBLIC_FORMSPREE_ID,
     },
   },
+  vue: {
+    compilerOptions: {
+      isCustomElement: (tag) => tag === 'em-emoji-picker',
+    },
+  },
 })
