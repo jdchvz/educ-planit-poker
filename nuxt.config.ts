@@ -20,5 +20,10 @@ export default defineNuxtConfig({
   },
   routeRules: {
     '/room/**': { ssr: false }
-  }
+  },
+  runtimeConfig: {
+    public: {
+      formspreeId: process.env.NUXT_PUBLIC_FORMSPREE_ID,
+    },
+  },
 })

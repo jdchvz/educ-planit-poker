@@ -13,6 +13,10 @@
         @create="createRoom"
       />
     </div>
+
+    <p class="mt-8 text-sm opacity-50">© {{ new Date().getFullYear() }} by Education Development Team</p>
+
+    <FeedbackWidget />
   </div>
 </template>
 
