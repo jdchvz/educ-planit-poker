@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+  <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2" ref="widgetRef">
     <Transition name="fade">
       <div
         v-if="showFeedback"
@@ -20,11 +20,15 @@
 
         <template v-if="!submitted">
           <textarea
+            ref="textareaRef"
             v-model="feedbackText"
             rows="3"
             placeholder="Share your thoughts..."
             class="w-full rounded-lg text-sm p-2 resize-none outline-none transition-colors duration-300"
             :class="dark ? 'bg-[#0f1e33] text-slate-200 placeholder-slate-500' : 'bg-slate-100 text-slate-800 placeholder-slate-400'"
+            @keydown.enter.exact.prevent="submitFeedback"
+            @keydown.shift.enter.exact="() => feedbackText += '\n'"
+            @keydown.esc="showFeedback = false"
           />
           <div class="flex justify-end gap-2 mt-2">
             <button
@@ -34,7 +38,7 @@
             >Cancel</button>
             <button
               @click="submitFeedback"
-              :disabled="loading"
+              :disabled="loading || !feedbackText.trim()"
               class="text-xs px-3 py-1.5 rounded-lg font-semibold bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ loading ? 'Sending...' : 'Submit' }}
@@ -62,6 +66,11 @@ const feedbackText = ref('')
 const loading = ref(false)
 const submitted = ref(false)
 const error = ref(false)
+const widgetRef = ref(null)
+const textareaRef = ref(null)
+
+// Expose ref so parent can handle outside click (same as invite button)
+defineExpose({ widgetRef })
 
 const toggleWidget = () => {
   showFeedback.value = !showFeedback.value
@@ -69,8 +78,19 @@ const toggleWidget = () => {
     submitted.value = false
     error.value = false
     feedbackText.value = ''
+    nextTick(() => textareaRef.value?.focus())
   }
 }
+
+// Close if click is outside the widget
+const handleOutsideClick = (e) => {
+  if (widgetRef.value && !widgetRef.value.contains(e.target)) {
+    showFeedback.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('mousedown', handleOutsideClick))
+onUnmounted(() => document.removeEventListener('mousedown', handleOutsideClick))
 
 const submitFeedback = async () => {
   if (!feedbackText.value.trim()) return
