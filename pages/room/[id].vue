@@ -36,8 +36,11 @@
       <VoteActions
         :revealed="revealed"
         :players="players"
+        :is-creator="store.isCreator"
+        :has-voted="!!votes[store.currentPlayer]"
         @reveal="reveal"
         @reset="reset"
+        @clear-vote="clearVote"
       />
 
       <CardDeck
@@ -125,6 +128,7 @@ onBeforeRouteLeave(() => {
 
 const reveal = () => store.reveal()
 const reset = () => store.reset()
+const clearVote = () => store.clearVote()
 const handleVote = (card: any) => store.vote(card)
 const handleNameSubmit = (name: string) => {
   store.addPlayer(name)

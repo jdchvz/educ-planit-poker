@@ -1,14 +1,15 @@
 import { defineStore } from 'pinia'
+import type { CardValue } from '../types/room'
 
-const DEFAULT_DECK: (string | number)[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]
+const DEFAULT_DECK: CardValue[] = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]
 
-const safeDeck = (val: any): (string | number)[] =>
+const safeDeck = (val: unknown): CardValue[] =>
   Array.isArray(val) && val.length > 0 ? val : [...DEFAULT_DECK]
 
 export const useRoomStore = defineStore('room', {
   state: () => ({
     players: [] as string[],
-    votes: {} as Record<string, any>,
+    votes: {} as Record<string, CardValue | '●' | null>,
     revealed: false,
     currentPlayer: '',
     currentRoomId: '',
@@ -17,27 +18,34 @@ export const useRoomStore = defineStore('room', {
     errorRedirect: false,
     isCreator: false,
     needNameModal: false,
-    cardDeck: [...DEFAULT_DECK] as (string | number)[],
+    cardDeck: [...DEFAULT_DECK] as CardValue[],
   }),
   actions: {
     init() {
       // only restore what's needed for reconnection
       this.currentPlayer = localStorage.getItem('currentPlayer') || ''
       this.isCreator = localStorage.getItem('isCreator') === 'true'
-      let savedDeck: any = null
+      let savedDeck: unknown = null
       try { savedDeck = JSON.parse(localStorage.getItem('cardDeck') || 'null') } catch { savedDeck = null }
       this.cardDeck = safeDeck(savedDeck)
       // players/votes/revealed are always synced from server via socket
     },
-    vote(card: any) {
+    vote(card: CardValue) {
       if (this.revealed) return
-      ;(this as any).emitVote?.(card)
+      // @ts-expect-error - emitVote is added by socket plugin
+      this.emitVote?.(card)
     },
     reveal() {
-      ;(this as any).emitReveal?.()
+      // @ts-expect-error - emitReveal is added by socket plugin
+      this.emitReveal?.()
     },
     reset() {
-      ;(this as any).emitReset?.()
+      // @ts-expect-error - emitReset is added by socket plugin
+      this.emitReset?.()
+    },
+    clearVote() {
+      // @ts-expect-error - emitUnvote is added by socket plugin
+      this.emitUnvote?.()
     },
     addPlayer(name: string) {
       if (!name) return
@@ -52,7 +60,7 @@ export const useRoomStore = defineStore('room', {
         localStorage.removeItem('currentPlayer')
       }
     },
-    startNewRoom(creatorName: string, deck: (string | number)[] = [...DEFAULT_DECK]) {
+    startNewRoom(creatorName: string, deck: CardValue[] = [...DEFAULT_DECK]) {
       this.players = []
       this.votes = {}
       this.revealed = false
@@ -71,7 +79,7 @@ export const useRoomStore = defineStore('room', {
         this.cardDeck = [...DEFAULT_DECK]
       }
     },
-    setCardDeck(deck: any) {
+    setCardDeck(deck: unknown) {
       this.cardDeck = safeDeck(deck)
       localStorage.setItem('cardDeck', JSON.stringify(this.cardDeck))
     },
@@ -89,8 +97,9 @@ declare module 'pinia' {
   export interface PiniaCustomProperties {
     connectSocket?: (roomId: string, name: string) => void
     disconnectSocket?: (roomId: string) => void
-    emitVote?: (card: any) => void
+    emitVote?: (card: CardValue) => void
     emitReveal?: () => void
     emitReset?: () => void
+    emitEmojiThrow?: (to: string, emoji: string) => void
   }
 }
