@@ -1,13 +1,18 @@
 import { io, Socket } from 'socket.io-client'
 import { useRoomStore } from '../stores/room'
 import { useEmojiThrow } from '../composables/useEmojiThrow'
+import { useErrorHandler } from '../composables/useErrorHandler'
 import { defineNuxtPlugin } from 'nuxt/app'
+import type { ClientToServerEvents, ServerToClientEvents } from '../types/socket'
+import type { CardValue } from '../types/room'
 
-export default defineNuxtPlugin((nuxtApp: any) => {
-  let socket: Socket | null = null
-  const store = useRoomStore() as any
+export default defineNuxtPlugin((nuxtApp) => {
+  let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null
+  const store = useRoomStore()
   const { addThrow } = useEmojiThrow()
+  const errorHandler = useErrorHandler()
   let currentRoundId: string = ''
+  let reconnectAttempt = 0
 
   function connect(roomId: string, name: string) {
     if (socket) return
@@ -23,11 +28,13 @@ export default defineNuxtPlugin((nuxtApp: any) => {
 
     socket.on('connect', () => {
       store._socketConnected = true
+      reconnectAttempt = 0
+
       if (store.isCreator) {
         socket!.emit('create-room', {
           roomId,
           name: store.currentPlayer,
-          deck: Array.isArray(store.cardDeck) ? store.cardDeck : [...[1, 2, 3, 5, 8, 13, 21, 34, 55, 89]],
+          deck: Array.isArray(store.cardDeck) ? store.cardDeck : [1, 2, 3, 5, 8, 13, 21, 34, 55, 89],
         })
       } else {
         currentRoundId = ''
@@ -35,29 +42,34 @@ export default defineNuxtPlugin((nuxtApp: any) => {
         localStorage.setItem('revealed', JSON.stringify(store.revealed))
         socket!.emit('join-room', { roomId, name })
       }
+
+      // Clear any reconnection error messages
+      if (reconnectAttempt > 0) {
+        errorHandler.handleReconnected()
+      }
     })
 
-    socket.on('room-created', ({ roomId: createdId }: { roomId: string }) => {
+    socket.on('room-created', ({ roomId: createdId }) => {
       socket!.emit('join-room', { roomId: createdId, name: store.currentPlayer })
     })
 
-    socket.on('presence', (payload: { players: string[] }) => {
+    socket.on('presence', (payload) => {
       store.players = payload.players
     })
 
-    socket.on('votes-sync', (payload: { roomId: string; votes: Record<string, any>; roundId: string }) => {
+    socket.on('votes-sync', (payload) => {
       if (payload.roomId !== store.currentRoomId) return
       currentRoundId = payload.roundId
       store.votes = { ...payload.votes }
     })
 
-    socket.on('reveal-update', (payload: { roomId: string; roundId: string }) => {
+    socket.on('reveal-update', (payload) => {
       if (payload.roomId !== store.currentRoomId) return
       store.revealed = true
       localStorage.setItem('revealed', JSON.stringify(store.revealed))
     })
 
-    socket.on('reset-update', (payload: { roomId: string; roundId: string }) => {
+    socket.on('reset-update', (payload) => {
       if (payload.roomId !== store.currentRoomId) return
       currentRoundId = payload.roundId
       store.votes = {}
@@ -65,16 +77,16 @@ export default defineNuxtPlugin((nuxtApp: any) => {
       localStorage.setItem('revealed', JSON.stringify(store.revealed))
     })
 
-    socket.on('deck-sync', (payload: { deck: (string | number)[] }) => {
+    socket.on('deck-sync', (payload) => {
       store.setCardDeck(payload.deck)
     })
 
-    socket.on('emoji-throw', (payload: { from: string; to: string; emoji: string }) => {
+    socket.on('emoji-throw', (payload) => {
       addThrow(payload.emoji, payload.from, payload.to)
     })
 
-    socket.on('room-not-found', (payload: { roomId: string }) => {
-      store.setError(`Room "${payload.roomId}" was not found. Redirecting to home...`)
+    socket.on('room-not-found', (payload) => {
+      errorHandler.handleRoomNotFound(payload.roomId)
       store.currentRoomId = ''
       store.players = []
       currentRoundId = ''
@@ -89,8 +101,8 @@ export default defineNuxtPlugin((nuxtApp: any) => {
       }, 2500)
     })
 
-    socket.on('name-taken', (payload: { name: string }) => {
-      store.setError(`Name "${payload.name}" is already taken in this room`)
+    socket.on('name-taken', (payload) => {
+      errorHandler.handleNameTaken(payload.name, payload.roomId)
       store.currentPlayer = ''
       localStorage.removeItem('currentPlayer')
       store.setNeedNameModal(true)
@@ -99,8 +111,22 @@ export default defineNuxtPlugin((nuxtApp: any) => {
       socket = null
     })
 
-    socket.on('connect_error', (err: Error) => console.error('[socket] connect_error', err))
-    socket.on('error', (err: Error) => console.error('[socket] error', err))
+    socket.on('connect_error', (err: Error) => {
+      errorHandler.handleSocketError(err, { roomId, name })
+    })
+
+    socket.on('error', (err: Error) => {
+      errorHandler.handleSocketError(err, { roomId, name })
+    })
+
+    socket.io.on('reconnect_attempt', (attempt: number) => {
+      reconnectAttempt = attempt
+      errorHandler.handleReconnecting(attempt)
+    })
+
+    socket.io.on('reconnect_failed', () => {
+      errorHandler.handleReconnectFailed()
+    })
   }
 
   function disconnect(roomId: string) {
@@ -115,7 +141,7 @@ export default defineNuxtPlugin((nuxtApp: any) => {
   store.connectSocket = connect
   store.disconnectSocket = disconnect
 
-  store.emitVote = (card: any) => {
+  store.emitVote = (card: CardValue) => {
     if (socket && store.currentRoomId && store.currentPlayer && currentRoundId) {
       socket.emit('vote', {
         roomId: store.currentRoomId,
@@ -134,6 +160,13 @@ export default defineNuxtPlugin((nuxtApp: any) => {
   store.emitReset = () => {
     if (socket && store.currentRoomId) {
       socket.emit('reset', { roomId: store.currentRoomId })
+    }
+  }
+
+  // @ts-expect-error - emitUnvote is dynamically added to the store
+  store.emitUnvote = () => {
+    if (socket && store.currentRoomId) {
+      socket.emit('unvote', { roomId: store.currentRoomId })
     }
   }
 

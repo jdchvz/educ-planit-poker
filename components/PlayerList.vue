@@ -12,52 +12,24 @@
     <div
       v-for="p in players"
       :key="p"
-      :ref="el => registerCard(el as HTMLElement | null, p)"
+      :ref="(el: any) => registerCard(el, p)"
       class="flex flex-col items-center gap-2 relative"
       @mouseenter="hoveredPlayer = p"
       @mouseleave="hoveredPlayer = null"
     >
-      <!-- Impact bursts — one per incoming emoji, stacked -->
-      <div
-        v-for="impact in (impactMap[p] ?? [])"
-        :key="impact.id"
-        class="absolute inset-0 z-50 pointer-events-none flex items-center justify-center"
-      >
-        <div class="impact-ring" />
-        <span class="impact-emoji text-4xl">{{ impact.emoji }}</span>
-      </div>
+      <!-- Impact animations -->
+      <EmojiImpactAnimation :impacts="impactMap[p] ?? []" />
 
-      <!-- Quick emoji bar shown on hover -->
-      <Transition name="quickbar">
-        <div
-          v-if="hoveredPlayer === p && p !== currentPlayer"
-          class="absolute -top-12 left-1/2 -translate-x-1/2 z-[101] flex items-center gap-1 px-2 py-1.5 rounded-2xl shadow-xl border"
-          :class="dark ? 'bg-[#0f172a] border-white/10' : 'bg-white border-slate-200'"
-          @mouseenter="hoveredPlayer = p"
-          @mouseleave="hoveredPlayer = null"
-          @click.stop
-        >
-          <button
-            v-for="emoji in quickEmojis"
-            :key="emoji"
-            class="text-xl w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-100 hover:scale-125 cursor-pointer"
-            :class="dark ? 'hover:bg-sky-500/20' : 'hover:bg-sky-100'"
-            @click="onThrow(emoji, p)"
-          >
-            {{ emoji }}
-          </button>
-          <button
-            class="w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-100 font-bold text-lg cursor-pointer"
-            :class="dark ? 'text-slate-400 hover:text-sky-400 hover:bg-sky-500/20' : 'text-slate-500 hover:text-sky-500 hover:bg-sky-100'"
-            @click.stop="togglePicker(p)"
-            title="More emojis"
-          >
-            +
-          </button>
-        </div>
-      </Transition>
+      <!-- Quick emoji bar -->
+      <EmojiQuickBar
+        :show="hoveredPlayer === p && p !== currentPlayer"
+        @throw="(emoji: string) => onThrow(emoji, p)"
+        @open-picker="togglePicker(p)"
+        @mouseenter="hoveredPlayer = p"
+        @mouseleave="hoveredPlayer = null"
+      />
 
-      <!-- Card -->
+      <!-- Player card -->
       <div
         class="card-flip relative transition-transform duration-150"
         :class="[
@@ -103,6 +75,7 @@
         </div>
       </div>
 
+      <!-- Player name -->
       <div class="flex flex-col items-center gap-1">
         <div
           class="text-sm md:text-base font-medium lowercase tracking-wide flex items-center gap-1 transition-colors duration-300"
@@ -126,27 +99,12 @@
     </div>
   </div>
 
-  <Teleport to="body">
-    <template v-for="p in players" :key="'picker-' + p">
-      <div
-        v-if="pickerTarget === p"
-        class="picker-wrapper fixed z-[102]"
-        :style="pickerPos"
-        @click.stop
-        :ref="el => registerPicker(el as HTMLElement | null, p)"
-      >
-        <em-emoji-picker
-          :theme="dark ? 'dark' : 'light'"
-          set="native"
-        />
-      </div>
-    </template>
-  </Teleport>
-
-  <div
-    v-if="pickerTarget"
-    class="fixed inset-0 z-[99]"
-    @click="pickerTarget = null; hoveredPlayer = null"
+  <!-- Emoji picker overlay -->
+  <EmojiPickerOverlay
+    :show="pickerTarget !== null"
+    :position="pickerPos"
+    @close="pickerTarget = null; hoveredPlayer = null"
+    @register="(el: HTMLElement | null) => registerPicker(el, pickerTarget!)"
   />
 </template>
 
@@ -154,11 +112,13 @@
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useTheme } from '../composables/useTheme'
 import { useEmojiThrow } from '../composables/useEmojiThrow'
+import { useEmojiAnimation, useEmojiPickerPosition, type EmojiImpact } from '../composables/useEmojiAnimation'
 import { useRoomStore } from '../stores/room'
+import type { CardValue } from '../types/room'
 
 const props = defineProps<{
   players: string[]
-  votes: Record<string, any>
+  votes: Record<string, CardValue | '●' | null>
   revealed: boolean
   currentPlayer: string
 }>()
@@ -170,7 +130,6 @@ const store = useRoomStore() as any
 const hoveredPlayer = ref<string | null>(null)
 const pickerTarget = ref<string | null>(null)
 const pickerPos = ref<Record<string, string>>({})
-const quickEmojis = ['🎯', '✈️', '🪨', '❤️', '🧻', '💩']
 
 const pickerListeners = new Map<string, {
   el: HTMLElement
@@ -180,9 +139,7 @@ const pickerListeners = new Map<string, {
 }>()
 
 const cardRefs = new Map<string, HTMLElement>()
-
-interface ImpactEntry { id: number; emoji: string }
-const impactMap = ref<Record<string, ImpactEntry[]>>({})
+const impactMap = ref<Record<string, EmojiImpact[]>>({})
 let impactId = 0
 
 function triggerImpact(emoji: string, player: string) {
@@ -202,87 +159,8 @@ function registerCard(el: HTMLElement | null, player: string) {
   else cardRefs.delete(player)
 }
 
-function computePickerPos(player: string) {
-  const cardEl = cardRefs.get(player)
-  if (!cardEl) return
-  const rect = cardEl.getBoundingClientRect()
-  const pickerWidth = 320
-  const pickerHeight = 380
-  let left = rect.left + rect.width / 2 - pickerWidth / 2
-  left = Math.max(8, Math.min(left, window.innerWidth - pickerWidth - 8))
-  let top = rect.bottom + 60
-  if (top + pickerHeight > window.innerHeight - 8) {
-    top = rect.top - pickerHeight - 60
-  }
-  pickerPos.value = { left: `${left}px`, top: `${top}px` }
-}
-
-function launchEmoji(emoji: string, toPlayer: string) {
-  const targetEl = cardRefs.get(toPlayer)
-  if (!targetEl) return
-  if (!props.players.includes(toPlayer)) return
-
-  const targetRect = targetEl.getBoundingClientRect()
-  const toX = targetRect.left + targetRect.width / 2
-  const toY = targetRect.top + targetRect.height / 2
-
-  const edge = Math.floor(Math.random() * 4)
-  let fromX: number
-  let fromY: number
-  switch (edge) {
-    case 0: fromX = -40; fromY = Math.random() * window.innerHeight; break
-    case 1: fromX = window.innerWidth + 40; fromY = Math.random() * window.innerHeight; break
-    case 2: fromX = Math.random() * window.innerWidth; fromY = -40; break
-    default: fromX = Math.random() * window.innerWidth; fromY = window.innerHeight + 40; break
-  }
-
-  const dx = toX - fromX
-  const dy = toY - fromY
-  const perpX = -dy * 0.15
-  const perpY = dx * 0.15
-  const ctrlX = fromX + dx * 0.5 + perpX
-  const ctrlY = fromY + dy * 0.5 + perpY
-
-  const spinDir = Math.random() > 0.5 ? 1 : -1
-  const totalSpin = spinDir * (120 + Math.random() * 180)
-  const duration = 800
-
-  const el = document.createElement('div')
-  el.style.cssText = `
-    position: fixed;
-    font-size: 2rem;
-    z-index: 9999;
-    pointer-events: none;
-    left: 0;
-    top: 0;
-    will-change: transform;
-    transform-origin: center;
-    opacity: 1;
-  `
-  el.textContent = emoji
-  document.body.appendChild(el)
-
-  const startTime = performance.now()
-
-  function frame(now: number) {
-    const t = Math.min((now - startTime) / duration, 1)
-    const inv = 1 - t
-    const x = inv * inv * fromX + 2 * inv * t * ctrlX + t * t * toX
-    const y = inv * inv * fromY + 2 * inv * t * ctrlY + t * t * toY
-    const rotate = totalSpin * t
-
-    el.style.transform = `translate(${x - 16}px, ${y - 16}px) rotate(${rotate}deg)`
-
-    if (t < 1) {
-      requestAnimationFrame(frame)
-    } else {
-      document.body.removeChild(el)
-      triggerImpact(emoji, toPlayer)
-    }
-  }
-
-  requestAnimationFrame(frame)
-}
+const { launchEmoji } = useEmojiAnimation(cardRefs, triggerImpact)
+const { computePickerPos } = useEmojiPickerPosition(cardRefs, pickerPos)
 
 watch(
   () => [...activeThrows.value],
@@ -381,63 +259,30 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.impact-emoji {
+.card-flip {
+  perspective: 1000px;
+}
+
+.card-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s;
+  transform-style: preserve-3d;
+}
+
+.flipped .card-flip-inner {
+  transform: rotateY(180deg);
+}
+
+.card-flip-front,
+.card-flip-back {
+  backface-visibility: hidden;
+}
+
+.card-flip-back {
   position: absolute;
-  animation: impact-pop 0.7s linear forwards;
-  z-index: 51;
-}
-
-.impact-ring {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: 3px solid currentColor;
-  animation: ring-expand 0.7s linear forwards;
-  opacity: 0.6;
-}
-
-@keyframes impact-pop {
-  0%   { transform: scale(0.2); opacity: 1; }
-  40%  { transform: scale(1.8); opacity: 1; }
-  70%  { transform: scale(1.3); opacity: 0.8; }
-  100% { transform: scale(1.0); opacity: 0; }
-}
-
-@keyframes ring-expand {
-  0%   { transform: scale(0.2); opacity: 0.8; }
-  100% { transform: scale(2.5); opacity: 0; }
-}
-
-.quickbar-enter-active,
-.quickbar-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.quickbar-enter-from,
-.quickbar-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(4px);
-}
-
-.picker-wrapper {
-  filter: drop-shadow(0 8px 32px rgba(0, 0, 0, 0.6));
-}
-
-:deep(em-emoji-picker) {
-  --rgb-accent: 99, 179, 237;
-  --rgb-background: 15, 23, 42;
-  --rgb-color: 226, 232, 240;
-  --rgb-input: 30, 41, 59;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-over: rgba(255, 255, 255, 0.15);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --border-radius: 16px;
-  --font-family: inherit;
-  --font-size: 14px;
-  --emoji-size: 24px;
-  --emoji-padding: 6px;
-  --category-icon-size: 18px;
-  width: 320px;
-  height: 380px;
+  inset: 0;
+  transform: rotateY(180deg);
 }
 </style>
