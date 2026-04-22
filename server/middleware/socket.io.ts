@@ -99,6 +99,8 @@ export default defineEventHandler((event) => {
     path: '/socket.io',
     transports: ['polling', 'websocket'],
     cors: { origin: '*', methods: ['GET', 'POST'] },
+    pingInterval: 25000,   // send ping every 25s
+    pingTimeout: 60000,    // wait 60s before declaring disconnected
   })
 
   ioInstance = io

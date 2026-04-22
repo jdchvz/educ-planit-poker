@@ -22,8 +22,10 @@ export default defineNuxtPlugin((nuxtApp) => {
       transports: ['polling', 'websocket'],
       upgrade: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity, // never give up
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 60000,
     })
 
     socket.on('connect', () => {
@@ -126,6 +128,15 @@ export default defineNuxtPlugin((nuxtApp) => {
 
     socket.io.on('reconnect_failed', () => {
       errorHandler.handleReconnectFailed()
+    })
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        if (socket && !socket.connected) {
+          socket.connect()
+        }
+      }
     })
   }
 
