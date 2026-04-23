@@ -25,7 +25,7 @@ export interface RoomStoreActions {
   reset(): void
   addPlayer(name: string): void
   removePlayer(name: string): void
-  startNewRoom(creatorName: string, deck?: CardValue[]): void
+  startNewRoom(creatorName: string, deck?: CardValue[], roomId?: string): void
   setRoom(roomId: string): void
   setCardDeck(deck: CardValue[]): void
   setError(msg: string, redirect?: boolean): void

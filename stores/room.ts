@@ -24,7 +24,6 @@ export const useRoomStore = defineStore('room', {
     init() {
       // only restore what's needed for reconnection
       this.currentPlayer = localStorage.getItem('currentPlayer') || ''
-      this.isCreator = localStorage.getItem('isCreator') === 'true'
       let savedDeck: unknown = null
       try { savedDeck = JSON.parse(localStorage.getItem('cardDeck') || 'null') } catch { savedDeck = null }
       this.cardDeck = safeDeck(savedDeck)
@@ -60,20 +59,21 @@ export const useRoomStore = defineStore('room', {
         localStorage.removeItem('currentPlayer')
       }
     },
-    startNewRoom(creatorName: string, deck: CardValue[] = [...DEFAULT_DECK]) {
+    startNewRoom(creatorName: string, deck: CardValue[] = [...DEFAULT_DECK], roomId: string) {
       this.players = []
       this.votes = {}
       this.revealed = false
       this.currentPlayer = ''
       this.isCreator = true
       this.cardDeck = safeDeck(deck)
-      localStorage.setItem('isCreator', 'true')
+      localStorage.setItem(`isCreator_${roomId}`, 'true')  // scoped
       localStorage.setItem('cardDeck', JSON.stringify(this.cardDeck))
       localStorage.removeItem('currentPlayer')
       this.addPlayer(creatorName)
     },
     setRoom(roomId: string) {
       this.currentRoomId = roomId
+      this.isCreator = localStorage.getItem(`isCreator_${roomId}`) === 'true'  // scoped
       if (!this.isCreator) {
         localStorage.removeItem('cardDeck')
         this.cardDeck = [...DEFAULT_DECK]

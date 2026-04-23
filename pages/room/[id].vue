@@ -123,7 +123,7 @@ onMounted(() => {
 onBeforeRouteLeave(() => {
   store.disconnectSocket?.(roomId)
   store.isCreator = false
-  localStorage.removeItem('isCreator')
+  localStorage.removeItem(`isCreator_${roomId}`)  // ← was 'isCreator'
 })
 
 const reveal = () => store.reveal()

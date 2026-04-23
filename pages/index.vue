@@ -31,7 +31,7 @@ const selectedDeck = ref([1, 2, 3, 5, 8, 13, 21, 34, 55, 89])
 const createRoom = () => {
   if (playerName.value) {
     const newId = Math.random().toString(36).substring(2, 8)
-    store.startNewRoom(playerName.value, selectedDeck.value)
+    store.startNewRoom(playerName.value, selectedDeck.value, newId) // add newId
     router.push(`/room/${newId}`)
   }
 }
